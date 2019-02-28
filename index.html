@@ -1,0 +1,458 @@
+<html>
+    <head>      
+        
+        <meta name="format-detection" content="telephone=no">
+        <meta name="msapplication-tap-highlight" content="no">
+        <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width">
+        
+        
+        <link rel="stylesheet" type="text/css" href="css/P5.css" />
+
+        <link rel="stylesheet" type="text/css" href="jquery/jquery.mobile-1.4.5.css" />
+        <script type="text/javascript" src="jquery/jquery.js"></script>  
+        <script type="text/javascript" src="jquery/jquery.mobile-1.4.5.js"></script>    
+
+        <script type="text/javascript" src="js/index.js"></script>  
+        <script type="text/javascript" src="cordova.js"></script>         
+
+        
+
+        <script>            
+            var volumen = 1;
+            var ficheroAudio;
+            var IDCancion;
+            var link;
+
+            document.addEventListener("deviceready", onDeviceReady, false);
+            function onDeviceReady() {
+                console.log(navigator.device.capture);
+            }            
+
+            document.addEventListener('deviceready', onDeviceReady, false);
+            
+          
+
+            function onDeviceReady() {                
+                db.transaction(populateDB, errorDB, succesDB);
+
+            }
+
+
+            function populateDB(tx){                  
+                
+                var nombres = ["FLO-RIDA -- LOW", "GREEN DAY -- AMERICAN IDIOT", "ADELLE -- SOMEONE LIKE YOU", "COLDPLAY -- FIX YOU", "DESTINY CHILD -- SURVIVOR", "EMINEM -- LOSE YOURSELF", "EMINEM ft RIHANNA -- I LOVE THE WAY YOU LIE", "EVANESCENCE -- BRING ME TO LIFE", "JACKSON 5 -- I WANT YOU BACK", "MICHAEL JACKSON -- BEAT IT"]
+                var canciones = ["http://jakesallstarkaraoke.com/media/Flo_Rida_-_Low.mp3", "http://jakesallstarkaraoke.com/media/Green_Day_-_American_Idiot.mp3", "http://jakesallstarkaraoke.com/media/Adele_-_Someone_Like_You.mp3", "http://jakesallstarkaraoke.com/media/Coldplay_-_Fix_You_Album_Version_.mp3", "http://jakesallstarkaraoke.com/media/Destiny_s_Child_-_Survivor.mp3", "http://jakesallstarkaraoke.com/media/Eminem_-_Lose_Yourself.mp3", "http://jakesallstarkaraoke.com/media/Eminem_ft._Rihanna_-_I_Love_the_Way_You_Lie.mp3", "http://jakesallstarkaraoke.com/media/Evanescence_-_Bring_Me_To_Life.mp3", "http://jakesallstarkaraoke.com/media/Jackson_5_-_I_Want_You_Back.mp3", "http://jakesallstarkaraoke.com/media/Micheal_Jackson_-_Beat_It.mp3"];                
+                var imagenes = ["img/low.JPG", "img/greenday.jpg", "img/adele.jpg", "img/coldplay.jpg", "img/survivor.jpg", "img/loseyourself.jpg", "img/eminem.png", "img/evanescense.jpg", "img/jackson5.jpg", "img/beatit.jpg"];
+
+                tx.executeSql('DROP TABLE IF EXISTS canciones');          
+                tx.executeSql('CREATE TABLE canciones (id INTEGER PRIMARY KEY AUTOINCREMENT, titulo varchar(255), link varchar(255), imagen varchar(255))');             
+                
+                for (var i = 0; i < 10; i++){
+                    tx.executeSql('INSERT INTO canciones(titulo, link, imagen) VALUES ("' + nombres[i] + '","' + canciones[i] + '", "' + imagenes[i] + '")');
+                } 
+
+                tx.executeSql('DROP TABLE IF EXISTS multimedia');
+                tx.executeSql('CREATE TABLE multimedia (id INTEGER PRIMARY KEY AUTOINCREMENT, fichero varchar(255), tipo varchar(255))');                                   
+            }   
+
+
+            function errorDB(){
+                alert("Error");
+            }
+
+            function succesDB(){                                
+                db.transaction(queryDB, errorDB);                
+            }
+
+            function queryDB(tx) {
+                // tx.executeSql('SELECT id, nom FROM contactes', [], querySuccess, errorDB);
+            }      
+
+            $(document).on('pageinit', '#pagePrincipal', function(event, ui) {
+                $("#reproductor").click(function(){ 
+                    llenar();   
+                    $.mobile.changePage("#pageListarCanciones");                   
+                });
+
+                $("#grabadora").click(function(){
+                    $.mobile.changePage("#pageRecorder");
+                })
+            });
+
+            $(document).on('pageinit', '#pageRecorder', function(event,ui){
+                $("#recordingButtonVideo").click(function(){
+                    startRecording();
+                })
+                $("#recordingButtonAudio").click(function(){
+                    startRecordingAudio();
+
+                })
+            })
+
+            //VIDEO
+
+            function startRecording(){
+                navigator.device.capture.captureVideo(captureSuccess, captureError);
+            }
+
+            function captureSuccess(mediaFiles) {                
+                var i, len;
+                for (i = 0, len = mediaFiles.length; i < len; i += 1) {
+                    uploadFile(mediaFiles[i]);
+                }
+            }
+
+            function captureError(error) {
+                var msg = 'An error occurred during capture: ' + error.code;
+                navigator.notification.alert(msg, null, 'Uh oh!');
+            }          
+
+            var ficheroVideo;
+            function uploadFile(file){
+                ficheroVideo = file.fullPath;
+                alert(ficheroVideo)
+                insertVideo();
+            }
+
+            function insertVideo(){
+                db.transaction(insertVideo1, errorDB);    
+            }
+
+            function insertVideo1(tx){
+                tx.executeSql('INSERT INTO multimedia(fichero, tipo) VALUES ("' + ficheroVideo + '", "V")');   
+                alert("Video saved correctly")            
+            }
+
+             //AUDIO
+
+            function startRecordingAudio(){                
+                navigator.device.capture.captureAudio(captureAudioSuccess, captureAudioError);
+            }
+            
+            function captureAudioSuccess(mediaFiles) {
+                var i, path, len;
+                for (i = 0, len = mediaFiles.length; i < len; i += 1) {
+                    uploadFileAudio(mediaFiles[i]);             
+                }
+            };
+
+            // capture error callback
+            function captureAudioError(error) {
+                navigator.notification.alert('Error code: ' + error.code, null, 'Capture Error');
+            }; 
+
+
+            
+            function uploadFileAudio(file){
+                ficheroAudio = file.fullPath;
+                insertAudio();
+            }
+
+            function insertAudio(){
+                db.transaction(insertAudio1, errorDB);    
+            }
+
+            function insertAudio1(tx){
+                tx.executeSql('INSERT INTO multimedia(fichero, tipo) VALUES ("' + ficheroAudio + '", "A")');    
+
+            }        
+
+            function llenar(){
+                db.transaction(llenarCanciones, errorDB);
+            }
+
+            function llenarCanciones(tx){                
+                tx.executeSql('SELECT * FROM canciones' , [], exitoLlenar, errorDB);
+            }
+
+            
+
+            function exitoLlenar(tx, results){
+                len = results.rows.length;
+
+                var sHTML = '';             
+                            
+                for (var i = 0; i < len; i++) {
+
+                    idNombre = results.rows.item(i).id;
+                    Nombre = results.rows.item(i).titulo;                    
+
+                    sHTML += '<li class="ui-li-static ui-body-inherit ui-first-child" id='+idNombre+'>'+Nombre+'</li>';
+                }                 
+
+                $('#listaCanciones').html(sHTML);
+
+                
+
+                for (var i = 0; i <= idNombre; i++){                    
+                    
+                    $('#'+i).click(function(){                                    
+                        IDCancion = $(this).attr('id');                         
+                        cojerTitulo1();
+                        cojerImg1();
+                        getURLCancion();
+                        $.mobile.changePage("#pageReproductor");                  
+                    });  
+                }
+            }
+
+            //TITULO
+
+            function cojerTitulo1(){
+                db.transaction(cojerTitulo, errorDB);
+            }
+
+            function cojerTitulo(tx){                
+                tx.executeSql('SELECT * FROM canciones WHERE id = "' + IDCancion + '"' , [], darTitulo, errorDB);
+            }
+
+
+            function darTitulo(tx, results){
+                titulo = results.rows.item(0).titulo;
+                $("#titulo").html("<h2 style='font-family: Calibri; font-size: 20px;'>"+ titulo +"</h2>");
+            };  
+
+            //IMAGEN
+
+            function cojerImg1(){
+                db.transaction(cojerImg, errorDB);
+            }
+
+            function cojerImg(tx){                
+                tx.executeSql('SELECT * FROM canciones WHERE id = "' + IDCancion + '"' , [], darImagen, errorDB);
+            }
+
+
+            function darImagen(tx, results){
+                imagen = results.rows.item(0).imagen;
+                $("#imagen").html("<img src="+ imagen + " />");
+            };  
+
+            function getURLCancion(){
+                db.transaction(URLCancion, errorDB);
+            }
+
+            function URLCancion(tx){
+                tx.executeSql("SELECT * FROM canciones WHERE id = " + IDCancion + "", [], URLCancion1, errorDB);
+            }   
+
+            function URLCancion1(tx, results){
+                link = results.rows.item(0).link;         
+                inicializarCancion(link);                        
+            }  
+          
+
+
+            $(document).on('pageinit' //'pageshow'
+                , '#pageReproductor', function(event, ui) { 
+
+                comprobarCancion();
+                $("#pause").show(); 
+                $("#play").hide();   
+
+                $("#play").click(function(){   
+                    // alert(IDCancion);
+                        getURLCancion();
+                      if (myMedia == null) inicializarCancion(link);
+                      else playAudio();                       
+                      $("#play").hide();
+                      $("#pause").show();
+                });
+
+                $("#pause").click(function(){                  
+                          pauseAudio();                          
+                          $("#pause").hide();
+                          $("#play").show();
+                });
+
+                $("#stop").click(function(){
+                    stopAudio();
+                    $("#pause").hide();
+                    $("#play").show();
+                });
+
+                $("#sCancion").click(function(){ 
+                    stopAudio();                       
+                    myMedia=null;                 
+                    var id = parseInt(IDCancion)
+                    // alert(IDCancion);
+                    id += 1;
+                    IDCancion = id;
+                    comprobarCancion();
+                    getURLCancion(); 
+                    cojerImg1();
+                    cojerTitulo1();
+                });                   
+                
+
+               $("#aCancion").click(function(){
+                    stopAudio();  
+                    myMedia=null;                                       
+                    IDCancion -= 1;
+                    comprobarCancion();  
+                    getURLCancion();
+                    cojerTitulo1();  
+                    cojerImg1(); 
+                    
+                     
+                });    
+
+               $("#volumenUp").click(function(){
+                    volumeUp();
+               });
+
+               $("#volumenDown").click(function(){
+                    volumeDown();
+               });
+            });            
+
+            function comprobarCancion(){
+                if(IDCancion == 1){
+                    $("#aCancion").hide();
+                } else if(IDCancion == 10){
+                    $("#sCancion").hide();
+                } else {
+                    $("#aCancion").show();
+                    $("#sCancion").show();
+                }
+            }     
+
+            var myMedia = null;
+            function inicializarCancion(cancion){
+                // alert("Cancion: " + cancion);
+                myMedia = new Media(cancion);
+                playAudio(); 
+            }              
+
+            function playAudio() {              
+                myMedia.play();
+            }
+
+            function pauseAudio() {               
+                myMedia.pause();
+            }  
+
+            function stopAudio() {
+                myMedia.stop();
+            }         
+
+            function volumeUp() {
+                volumen += 0.1;                     
+                myMedia.setVolume(volumen);
+            }
+
+            function volumeDown() {
+                volumen -= 0.1;                            
+                myMedia.setVolume(volumen);
+            }
+
+
+        </script>      
+        <title>P5_AITOR</title>        
+    </head>
+    <body>  
+          <div data-role="page" id="pagePrincipal">
+            <div data-role="header">
+                <h2>P5 - AITOR</h2>
+            </div>
+            <center><img src="img/logoTravel.png"/></center><br/>     
+            <center><div id="principal">                           
+                <div id="botones">
+                    <button id="reproductor">PLAYER</button>
+                    <button id="grabadora">RECORDER</button>                    
+                </div>
+                <div data-role ="footer" id="footer" style=" margin-left: -10%;">
+                    <h2>M08_Aitor</h2>
+                </div> 
+            </div></center>
+        </div>
+
+         <div data-role="page" id="pageListarCanciones">
+            <div data-role="header">
+                <a data-role="button" data-rel="back" data-icon="back" style="height: 16px;">BACK</a>
+                <h2>P5 - AITOR</h2>
+            </div>
+            <center><div id="principal">
+                 <center><img src="img/logoTravel.png" style="width: 35%;"/></center><br/>              
+                <form class="ui-filterable">
+                    <input id="filterBasic-input" data-type="search">
+                </form>
+                <div>
+                    <ul data-role="listview" data-filter="true" data-input="#filterBasic-input" id = "listaCanciones" >                       
+                    </ul>
+                </div>
+            </div></center>                    
+            <div data-role ="footer" id="footer">
+                <h2>M08_Aitor</h2>
+            </div> 
+        </div> 
+
+        <div data-role="page" id="pageReproductor">
+            <div data-role="header">
+                <a data-role="button" data-rel="back" data-icon="back" style="height: 16px;">BACK</a>
+                <h2>P5 - AITOR</h2>
+            </div>
+            <center><img id="logoRep" src="img/logoTravel.png" style="width: 35%;"/></center> 
+            <center><div id="principal"> 
+                <br>  
+                <div id="imagen"></div>               
+                <div id="titulo"></div>                      
+                <div>
+                    
+                    <center>
+                        <table cellspacing="2">
+                            <td>
+                                 
+                                <img id="aCancion" src="img/anterior.png"/>
+                                <img id="play" src="img/play.png"/>
+                                <img id="pause" src="img/pausa.png"/> 
+                                <img id="sCancion" src="img/avanceCancion.png"/> 
+                                                                                       
+                            </td>
+                        </table>
+                    </center></div>
+
+                     <center>
+                        <table cellspacing="2">
+                            <td>
+                                <div style="float: left;   margin-left: -65%;">
+                                    <img src="img/aleatorio.png"/>  
+                                    <img id ="volumenDown" src="img/bVolumen.png"/>
+                                </div>
+                                <div style=" float: right;   margin-right: -63%;">                                 
+                                    <img id ="volumenUp" src="img/sVolumen.png"/> 
+                                    <img id="stop" src="img/stop.png"/>   
+                                </div>                                                        
+                            </td>
+                        </table>
+                    </center></div>
+
+                <div data-role ="footer" id="footer" style=" margin-left: -10%;">
+                    <h2>M08_Aitor</h2>
+                </div> 
+            </div></center>
+        </div>
+
+        <div data-role="page" id="pageRecorder">
+            <div data-role="header">
+                <a data-role="button" data-rel="back" data-icon="back" style="height: 16px;">BACK</a>
+                <h2>P5 - AITOR</h2>
+            </div>
+            <center><img src="img/logoTravel.png" style="width: 35%;"/></center><br/>  
+            <center><div id="principal">               
+                <div id="titulo"></div>            
+                <div><img src="img/logo.png" style="width: 25%;"/></div>
+                <br>
+                <div>
+                    <button id="recordingButtonVideo">RECORD VIDEO</button>
+                    <button id="recordingButtonAudio">RECORD AUDIO</button>
+                </div>                                
+                <div data-role ="footer" id="footer" style=" margin-left: -10%;">
+                    <h2>M08_Aitor</h2>
+                </div> 
+            </div></center>
+        </div>
+
+    </body>
+</html>
+
